@@ -3,9 +3,22 @@
   "express": "^4.21.2",
   "mongodb": "^5.5.0"  
 },
-  
-  "engines": {
+
+"engines": {
   "node": "16.x"
+},
+
+"scripts": {
+  "build": "npm install"
 }
 
+
+
+
 }
+
+
+  
+
+
+
