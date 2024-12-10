@@ -1,5 +1,6 @@
 const express = require("express");
 const { MongoClient, ObjectID } = require("mongodb");
+const path = require("path");
 
 const app = express();
 app.use(express.json());
@@ -83,36 +84,21 @@ app.get("/collections/:collectionName/:id", async (req, res, next) => {
 // Update an item in a collection by title
 app.put("/collections/:collectionName/:title", async (req, res, next) => {
   const { ObjectID } = require("mongodb"); // Ensure ObjectID is required
-  const collectionName = request.params.collectionName;
-  const id = request.params.id;
+  const collectionName = req.params.collectionName;
+  const title = req.params.title;
 
   try {
-    // Convert ⁠ id ⁠ to ObjectID
-    const query = { _id: new ObjectID(id) };
-    const update = { $set: request.body };
+    // Convert title to ObjectID if needed
+    const query = { title: title };
+    const update = { $set: req.body };
 
-    request.collection.updateOne(
-      query,
-      update,
-      { safe: true, multi: false },
-      (error, result) => {
-        if (error) {
-          console.error("Update error:", error);
-          return next(error);
-        }
+    const result = await req.collection.updateOne(query, update);
+    if (result.matchedCount === 0) {
+      return res.status(404).send({ msg: "No document found with this title" });
+    }
 
-        console.log("Update result:", result); // Log update result for debugging
-        if (result.matchedCount === 0) {
-          console.error("No document found with this ID:", id);
-        }
-
-        response.send(
-          result.matchedCount === 1 ? { msg: "success" } : { msg: "error" }
-        );
-      }
-    );
+    res.send(result.matchedCount === 1 ? { msg: "success" } : { msg: "error" });
   } catch (error) {
-    console.error("Error in PUT route:", error);
     next(error);
   }
 });
