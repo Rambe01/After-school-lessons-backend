@@ -82,18 +82,38 @@ app.get("/collections/:collectionName/:id", async (req, res, next) => {
 
 // Update an item in a collection by title
 app.put("/collections/:collectionName/:title", async (req, res, next) => {
+  const { ObjectID } = require("mongodb"); // Ensure ObjectID is required
+  const collectionName = request.params.collectionName;
+  const id = request.params.id;
+
   try {
-    const lesson = await req.collection.findOne({ title: req.params.title });
-    if (!lesson) {
-      return res.status(404).send({ msg: "Lesson not found" });
-    }
-    const result = await req.collection.updateOne(
-      { title: req.params.title },
-      { $set: req.body }
+    // Convert ⁠ id ⁠ to ObjectID
+    const query = { _id: new ObjectID(id) };
+    const update = { $set: request.body };
+
+    request.collection.updateOne(
+      query,
+      update,
+      { safe: true, multi: false },
+      (error, result) => {
+        if (error) {
+          console.error("Update error:", error);
+          return next(error);
+        }
+
+        console.log("Update result:", result); // Log update result for debugging
+        if (result.matchedCount === 0) {
+          console.error("No document found with this ID:", id);
+        }
+
+        response.send(
+          result.matchedCount === 1 ? { msg: "success" } : { msg: "error" }
+        );
+      }
     );
-    res.send(result.result.n === 1 ? { msg: "success" } : { msg: "error" });
-  } catch (e) {
-    next(e);
+  } catch (error) {
+    console.error("Error in PUT route:", error);
+    next(error);
   }
 });
 
