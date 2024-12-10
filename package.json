@@ -1,24 +1,13 @@
 {
   "dependencies": {
-  "express": "^4.21.2",
-  "mongodb": "^5.5.0"  
-},
-
-"engines": {
-  "node": "16.x"
-},
-
-"scripts": {
-  "build": "npm install"
+    "cmap": "^0.1.3",
+    "express": "^4.21.2",
+    "mongodb": "^5.5.0"
+  },
+  "engines": {
+    "node": "16.x"
+  },
+  "scripts": {
+    "start": "npm install && node server.js"
+  }
 }
-
-
-
-
-}
-
-
-  
-
-
-

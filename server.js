@@ -23,13 +23,17 @@ const mongoURI =
 let db;
 
 // Connect to MongoDB
-MongoClient.connect(mongoURI, {})
+MongoClient.connect(mongoURI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
   .then((client) => {
     db = client.db("Afterschoolclub");
     console.log("Connected to MongoDB");
   })
   .catch((err) => {
-    console.error("Failed to connect to MongoDB:", err);
+    console.error("Failed to connect to MongoDB:", err.message);
+    console.error("MongoDB URI:", mongoURI);
     process.exit(1);
   });
 
