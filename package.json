@@ -9,5 +9,11 @@
   },
   "scripts": {
     "start": "npm install && node server.js"
-  }
+  },
+  "name": "after-school-lessons-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "author": "",
+  "license": "ISC"
 }
