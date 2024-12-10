@@ -104,11 +104,11 @@ app.put("/collections/:collectionName/:title", async (req, res, next) => {
 app.post("/placeOrder", async (req, res) => {
   console.log("Received order:", req.body);
 
-  const order = req.body;
+  const order = req.body; // Order contains lessons and their quantities
   const lessons = order.lessons;
 
   try {
-    // Validate lessons
+    // Validate lessons and availability
     for (const lesson of lessons) {
       const dbLesson = await db.collection("products").findOne({
         title: lesson.lessonTitle,
@@ -138,7 +138,7 @@ app.post("/placeOrder", async (req, res) => {
     // Insert the order into the Orders collection
     const result = await db.collection("Orders").insertOne(order);
 
-    console.log("Order successfully inserted:", result.insertedId);
+    console.log("Order successfully placed:", result.insertedId);
 
     // Respond with success
     res.status(200).json({
@@ -160,6 +160,65 @@ app.delete("/collections/:collectionName/:id", async (req, res, next) => {
     res.send(result.result.n === 1 ? { msg: "success" } : { msg: "error" });
   } catch (e) {
     next(e);
+  }
+});
+
+// Get cart data (mocked for now, replace with actual cart data retrieval logic)
+app.get("/cart", async (req, res) => {
+  // Ideally, you would store cart data in the session or a database to persist it
+  // For simplicity, we're using a mock cart here
+  const cart = [
+    { id: 1, title: "Math Lesson", price: 100, quantity: 2 },
+    { id: 2, title: "Science Lesson", price: 120, quantity: 1 },
+  ];
+
+  res.status(200).json({ cart });
+});
+
+// Checkout route
+app.post("/checkout", async (req, res) => {
+  const cart = req.body.cart; // Cart data sent by frontend
+  const userId = req.body.userId; // Optional: if you want to link the order to a user
+
+  try {
+    // Validate cart items and update availability
+    for (const lesson of cart) {
+      const dbLesson = await db.collection("products").findOne({
+        title: lesson.title,
+      });
+
+      if (!dbLesson) {
+        return res.status(404).json({
+          msg: `Lesson ${lesson.title} not found.`,
+        });
+      }
+
+      if (dbLesson.availability < lesson.quantity) {
+        return res.status(400).json({
+          msg: `Not enough availability for ${lesson.title}. Only ${dbLesson.availability} spots available.`,
+        });
+      }
+
+      // Deduct availability
+      await db
+        .collection("products")
+        .updateOne(
+          { title: lesson.title },
+          { $inc: { availability: -lesson.quantity } }
+        );
+    }
+
+    // Save order to the Orders collection
+    const order = { userId, lessons: cart, createdAt: new Date() };
+    const result = await db.collection("Orders").insertOne(order);
+
+    res.status(200).json({
+      msg: "Order placed successfully",
+      orderId: result.insertedId,
+    });
+  } catch (error) {
+    console.error("Error placing order:", error);
+    res.status(500).json({ msg: "Failed to place order" });
   }
 });
 
