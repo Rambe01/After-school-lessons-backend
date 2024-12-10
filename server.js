@@ -34,7 +34,6 @@ MongoClient.connect(mongoURI, {
   })
   .catch((err) => {
     console.error("Failed to connect to MongoDB:", err.message);
-    console.error("MongoDB URI:", mongoURI);
     process.exit(1);
   });
 
@@ -83,12 +82,10 @@ app.get("/collections/:collectionName/:id", async (req, res, next) => {
 
 // Update an item in a collection by title
 app.put("/collections/:collectionName/:title", async (req, res, next) => {
-  const { ObjectID } = require("mongodb"); // Ensure ObjectID is required
   const collectionName = req.params.collectionName;
   const title = req.params.title;
 
   try {
-    // Convert title to ObjectID if needed
     const query = { title: title };
     const update = { $set: req.body };
 
