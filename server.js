@@ -60,12 +60,10 @@ app.get("/collections/:collectionName", async (req, res, next) => {
 
 // Add a new item to a collection
 app.post("/collections/:collectionName", async (req, res, next) => {
-  try {
-    const result = await req.collection.insertOne(req.body);
-    res.send(result.ops);
-  } catch (e) {
-    next(e);
-  }
+  req.collection.insert(req.body, (e, results) => {
+    if (e) return next(e);
+    res.send(results.result.n === 1 ? { msg: "success" } : { msg: "error" });
+  });
 });
 
 // Get an item by ID from a collection
@@ -82,72 +80,38 @@ app.get("/collections/:collectionName/:id", async (req, res, next) => {
 
 // Update an item in a collection by title
 app.put("/collections/:collectionName/:title", async (req, res, next) => {
+  const { ObjectID } = require("mongodb");
   const collectionName = req.params.collectionName;
-  const title = req.params.title;
+  const id = req.params.id;
 
   try {
-    const query = { title: title };
+    // Convert ⁠ id ⁠ to ObjectID
+    const query = { _id: new ObjectID(id) };
     const update = { $set: req.body };
 
-    const result = await req.collection.updateOne(query, update);
-    if (result.matchedCount === 0) {
-      return res.status(404).send({ msg: "No document found with this title" });
-    }
+    req.collection.updateOne(
+      query,
+      update,
+      { safe: true, multi: false },
+      (error, result) => {
+        if (error) {
+          console.error("Update error:", error);
+          return next(error);
+        }
 
-    res.send(result.matchedCount === 1 ? { msg: "success" } : { msg: "error" });
-  } catch (error) {
-    next(error);
-  }
-});
+        console.log("Update result:", result);
+        if (result.matchedCount === 0) {
+          console.error("No document found with this ID:", id);
+        }
 
-// Place an order route
-app.post("/placeOrder", async (req, res) => {
-  console.log("Received order:", req.body);
-
-  const order = req.body; // Order contains lessons and their quantities
-  const lessons = order.lessons;
-
-  try {
-    // Validate lessons and availability
-    for (const lesson of lessons) {
-      const dbLesson = await db.collection("products").findOne({
-        title: lesson.lessonTitle,
-      });
-
-      if (!dbLesson) {
-        return res.status(404).json({
-          msg: `Lesson ${lesson.lessonTitle} not found.`,
-        });
-      }
-
-      if (dbLesson.availability < lesson.quantity) {
-        return res.status(400).json({
-          msg: `Not enough availability for ${lesson.lessonTitle}. Only ${dbLesson.availability} spots available.`,
-        });
-      }
-
-      // Deduct availability
-      await db
-        .collection("products")
-        .updateOne(
-          { title: lesson.lessonTitle },
-          { $inc: { availability: -lesson.quantity } }
+        res.send(
+          result.matchedCount === 1 ? { msg: "success" } : { msg: "error" }
         );
-    }
-
-    // Insert the order into the Orders collection
-    const result = await db.collection("Orders").insertOne(order);
-
-    console.log("Order successfully placed:", result.insertedId);
-
-    // Respond with success
-    res.status(200).json({
-      msg: "Order placed successfully",
-      orderId: result.insertedId,
-    });
+      }
+    );
   } catch (error) {
-    console.error("Error placing order:", error);
-    res.status(500).json({ msg: "Failed to place order" });
+    console.error("Error in PUT route:", error);
+    next(error);
   }
 });
 
@@ -226,6 +190,12 @@ app.post("/checkout", async (req, res) => {
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ msg: "Something went wrong!" });
+});
+
+var imagePath = path.resolve(__dirname, "assets");
+app.use("/assets", express.static(imagePath));
+app.get("/assets/:image", (request, response) => {
+  response.status(404).send("Image not found");
 });
 
 // Start the server
